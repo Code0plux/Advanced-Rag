@@ -1,0 +1,5 @@
+.env
+chroma_store/
+uploads/
+__pycache__/
+*.pyc
