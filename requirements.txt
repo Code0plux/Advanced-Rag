@@ -6,3 +6,5 @@ google-genai
 pypdf
 nltk
 python-dotenv
+pyjwt
+bcrypt

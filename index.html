@@ -1,209 +1,196 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>PDF RAG Chat</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', sans-serif; background: #0f0f0f; color: #e0e0e0; height: 100vh; display: flex; align-items: center; justify-content: center; }
 
-    body {
-      font-family: 'Segoe UI', sans-serif;
-      background: #0f0f0f;
-      color: #e0e0e0;
-      display: flex;
-      height: 100vh;
-      overflow: hidden;
-    }
+    /* Auth */
+    #auth-screen { width: 360px; background: #1a1a1a; border-radius: 12px; padding: 32px; display: flex; flex-direction: column; gap: 16px; }
+    #auth-screen h1 { font-size: 1.3rem; text-align: center; color: #a89fff; }
+    #auth-tabs { display: flex; gap: 8px; }
+    .tab-btn { flex: 1; padding: 8px; border: 1px solid #333; background: transparent; color: #aaa; border-radius: 6px; cursor: pointer; font-size: 0.85rem; transition: all 0.2s; }
+    .tab-btn.active { background: #6c63ff; color: white; border-color: #6c63ff; }
+    #auth-screen input { background: #111; border: 1px solid #2a2a2a; border-radius: 8px; padding: 10px 14px; color: #e0e0e0; font-size: 0.9rem; outline: none; transition: border-color 0.2s; }
+    #auth-screen input:focus { border-color: #6c63ff; }
+    #auth-submit { background: #6c63ff; color: white; border: none; padding: 11px; border-radius: 8px; cursor: pointer; font-size: 0.95rem; transition: background 0.2s; }
+    #auth-submit:hover { background: #574fd6; }
+    #auth-error { font-size: 0.8rem; color: #ff6b6b; min-height: 18px; text-align: center; }
 
-    /* Sidebar */
-    #sidebar {
-      width: 280px;
-      background: #1a1a1a;
-      border-right: 1px solid #2a2a2a;
-      display: flex;
-      flex-direction: column;
-      padding: 20px;
-      gap: 16px;
-    }
-
-    #sidebar h2 { font-size: 1rem; color: #aaa; text-transform: uppercase; letter-spacing: 1px; }
-
-    #upload-area {
-      border: 2px dashed #333;
-      border-radius: 10px;
-      padding: 20px;
-      text-align: center;
-      cursor: pointer;
-      transition: border-color 0.2s;
-    }
+    /* App */
+    #app-screen { display: none; width: 100vw; height: 100vh; flex-direction: row; }
+    #sidebar { width: 280px; background: #1a1a1a; border-right: 1px solid #2a2a2a; display: flex; flex-direction: column; padding: 20px; gap: 14px; }
+    #sidebar-header { display: flex; justify-content: space-between; align-items: center; }
+    #sidebar-header span { font-size: 0.8rem; color: #a89fff; font-weight: 600; }
+    #logout-btn { background: transparent; border: 1px solid #333; color: #aaa; padding: 4px 10px; border-radius: 6px; cursor: pointer; font-size: 0.75rem; transition: all 0.2s; }
+    #logout-btn:hover { border-color: #ff6b6b; color: #ff6b6b; }
+    .section-label { font-size: 0.75rem; color: #555; text-transform: uppercase; letter-spacing: 1px; }
+    #upload-area { border: 2px dashed #333; border-radius: 10px; padding: 16px; text-align: center; cursor: pointer; transition: border-color 0.2s; }
     #upload-area:hover { border-color: #6c63ff; }
-    #upload-area p { font-size: 0.85rem; color: #777; margin-top: 8px; }
+    #upload-area p { font-size: 0.8rem; color: #666; margin-top: 6px; }
     #file-input { display: none; }
-
-    #upload-btn {
-      background: #6c63ff;
-      color: white;
-      border: none;
-      padding: 10px;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 0.9rem;
-      transition: background 0.2s;
-    }
+    #upload-btn { background: #6c63ff; color: white; border: none; padding: 9px; border-radius: 8px; cursor: pointer; font-size: 0.85rem; transition: background 0.2s; }
     #upload-btn:hover { background: #574fd6; }
-    #upload-btn:disabled { background: #333; cursor: not-allowed; }
-
-    #upload-status { font-size: 0.8rem; color: #6c63ff; min-height: 18px; }
-
-    #pdf-list { display: flex; flex-direction: column; gap: 8px; overflow-y: auto; flex: 1; }
-
-    .pdf-item {
-      padding: 10px 12px;
-      background: #222;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 0.85rem;
-      border: 1px solid transparent;
-      transition: all 0.2s;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
+    #upload-btn:disabled { background: #2a2a2a; color: #555; cursor: not-allowed; }
+    #upload-status { font-size: 0.78rem; color: #6c63ff; min-height: 16px; }
+    #pdf-list { display: flex; flex-direction: column; gap: 6px; overflow-y: auto; flex: 1; }
+    .pdf-item { display: flex; align-items: center; justify-content: space-between; padding: 9px 12px; background: #222; border-radius: 8px; border: 1px solid transparent; transition: all 0.2s; cursor: pointer; }
     .pdf-item:hover { border-color: #6c63ff; }
-    .pdf-item.active { border-color: #6c63ff; background: #2a2040; color: #a89fff; }
+    .pdf-item.active { border-color: #6c63ff; background: #2a2040; }
+    .pdf-name { font-size: 0.82rem; color: #ccc; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; }
+    .pdf-item.active .pdf-name { color: #a89fff; }
+    .delete-btn { background: transparent; border: none; color: #444; cursor: pointer; font-size: 1rem; padding: 0 0 0 8px; transition: color 0.2s; flex-shrink: 0; }
+    .delete-btn:hover { color: #ff6b6b; }
 
-    /* Main chat area */
-    #main {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-    }
-
-    #chat-header {
-      padding: 16px 24px;
-      border-bottom: 1px solid #2a2a2a;
-      font-size: 0.95rem;
-      color: #aaa;
-    }
+    /* Main */
+    #main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+    #chat-header { padding: 14px 24px; border-bottom: 1px solid #2a2a2a; font-size: 0.9rem; color: #aaa; display: flex; align-items: center; gap: 8px; }
     #chat-header span { color: #a89fff; font-weight: 600; }
-
-    #messages {
-      flex: 1;
-      overflow-y: auto;
-      padding: 24px;
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
-
-    .message {
-      max-width: 75%;
-      padding: 12px 16px;
-      border-radius: 12px;
-      font-size: 0.9rem;
-      line-height: 1.6;
-      white-space: pre-wrap;
-    }
-    .message.user {
-      align-self: flex-end;
-      background: #6c63ff;
-      color: white;
-      border-bottom-right-radius: 4px;
-    }
-    .message.bot {
-      align-self: flex-start;
-      background: #1e1e1e;
-      border: 1px solid #2a2a2a;
-      border-bottom-left-radius: 4px;
-    }
-    .message.thinking {
-      align-self: flex-start;
-      background: #1e1e1e;
-      border: 1px solid #2a2a2a;
-      color: #555;
-      font-style: italic;
-    }
-
-    #input-area {
-      padding: 16px 24px;
-      border-top: 1px solid #2a2a2a;
-      display: flex;
-      gap: 10px;
-    }
-
-    #question-input {
-      flex: 1;
-      background: #1e1e1e;
-      border: 1px solid #2a2a2a;
-      border-radius: 8px;
-      padding: 12px 16px;
-      color: #e0e0e0;
-      font-size: 0.9rem;
-      outline: none;
-      transition: border-color 0.2s;
-    }
+    #empty-state { flex: 1; display: flex; align-items: center; justify-content: center; color: #2a2a2a; font-size: 1rem; }
+    #messages { flex: 1; overflow-y: auto; padding: 24px; display: flex; flex-direction: column; gap: 14px; }
+    .message { max-width: 75%; padding: 11px 15px; border-radius: 12px; font-size: 0.88rem; line-height: 1.6; white-space: pre-wrap; }
+    .message.user { align-self: flex-end; background: #6c63ff; color: white; border-bottom-right-radius: 4px; }
+    .message.bot { align-self: flex-start; background: #1e1e1e; border: 1px solid #2a2a2a; border-bottom-left-radius: 4px; }
+    .message.thinking { align-self: flex-start; background: #1e1e1e; border: 1px solid #2a2a2a; color: #444; font-style: italic; }
+    #input-area { padding: 14px 24px; border-top: 1px solid #2a2a2a; display: flex; gap: 10px; }
+    #question-input { flex: 1; background: #1e1e1e; border: 1px solid #2a2a2a; border-radius: 8px; padding: 11px 15px; color: #e0e0e0; font-size: 0.88rem; outline: none; transition: border-color 0.2s; }
     #question-input:focus { border-color: #6c63ff; }
-    #question-input::placeholder { color: #444; }
-
-    #send-btn {
-      background: #6c63ff;
-      color: white;
-      border: none;
-      padding: 12px 20px;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 0.9rem;
-      transition: background 0.2s;
-    }
+    #question-input::placeholder { color: #333; }
+    #send-btn { background: #6c63ff; color: white; border: none; padding: 11px 18px; border-radius: 8px; cursor: pointer; font-size: 0.88rem; transition: background 0.2s; }
     #send-btn:hover { background: #574fd6; }
-    #send-btn:disabled { background: #333; cursor: not-allowed; }
-
-    #empty-state {
-      flex: 1;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #333;
-      font-size: 1rem;
-    }
+    #send-btn:disabled { background: #2a2a2a; color: #555; cursor: not-allowed; }
   </style>
 </head>
 <body>
 
-<div id="sidebar">
-  <h2>Your PDFs</h2>
-
-  <div id="upload-area" onclick="document.getElementById('file-input').click()">
-    <div style="font-size:2rem">📄</div>
-    <p>Click to upload a PDF</p>
-    <input type="file" id="file-input" accept=".pdf" onchange="handleFileSelect(event)" />
+<!-- Auth Screen -->
+<div id="auth-screen">
+  <h1>📄 PDF RAG Chat</h1>
+  <div id="auth-tabs">
+    <button class="tab-btn active" onclick="switchTab('login')">Login</button>
+    <button class="tab-btn" onclick="switchTab('register')">Register</button>
   </div>
-
-  <button id="upload-btn" disabled onclick="uploadPDF()">Upload</button>
-  <div id="upload-status"></div>
-
-  <h2>Uploaded</h2>
-  <div id="pdf-list"></div>
+  <input type="text" id="auth-username" placeholder="Username" />
+  <input type="password" id="auth-password" placeholder="Password" />
+  <button id="auth-submit" onclick="submitAuth()">Login</button>
+  <div id="auth-error"></div>
 </div>
 
-<div id="main">
-  <div id="chat-header">Chatting with: <span id="active-pdf-name">none selected</span></div>
-  <div id="empty-state">← Select or upload a PDF to start chatting</div>
-  <div id="messages" style="display:none"></div>
-  <div id="input-area" style="display:none">
-    <input type="text" id="question-input" placeholder="Ask a question about the PDF..." onkeydown="if(event.key==='Enter') sendQuestion()" />
-    <button id="send-btn" onclick="sendQuestion()">Send</button>
+<!-- App Screen -->
+<div id="app-screen">
+  <div id="sidebar">
+    <div id="sidebar-header">
+      <span id="username-label"></span>
+      <button id="logout-btn" onclick="logout()">Logout</button>
+    </div>
+
+    <div class="section-label">Upload PDF</div>
+    <div id="upload-area" onclick="document.getElementById('file-input').click()">
+      <div style="font-size:1.8rem">📄</div>
+      <p>Click to select a PDF</p>
+      <input type="file" id="file-input" accept=".pdf" onchange="handleFileSelect(event)"/>
+    </div>
+    <button id="upload-btn" disabled onclick="uploadPDF()">Upload</button>
+    <div id="upload-status"></div>
+
+    <div class="section-label">Your PDFs</div>
+    <div id="pdf-list"></div>
+  </div>
+
+  <div id="main">
+    <div id="chat-header">Chatting with: <span id="active-pdf-name">none selected</span></div>
+    <div id="empty-state">← Select or upload a PDF to start chatting</div>
+    <div id="messages" style="display:none"></div>
+    <div id="input-area" style="display:none">
+      <input type="text" id="question-input" placeholder="Ask a question about the PDF..." onkeydown="if(event.key==='Enter') sendQuestion()"/>
+      <button id="send-btn" onclick="sendQuestion()">Send</button>
+    </div>
   </div>
 </div>
 
 <script>
   const API = "";
+  let token = localStorage.getItem("token");
+  let currentTab = "login";
   let selectedFile = null;
   let activePDF = null;
 
+  // --- Auth ---
+
+  if (token) showApp();
+
+  function switchTab(tab) {
+    currentTab = tab;
+    document.querySelectorAll(".tab-btn").forEach((b, i) => b.classList.toggle("active", (i === 0) === (tab === "login")));
+    document.getElementById("auth-submit").textContent = tab === "login" ? "Login" : "Register";
+    document.getElementById("auth-error").textContent = "";
+  }
+
+  async function submitAuth() {
+    const username = document.getElementById("auth-username").value.trim();
+    const password = document.getElementById("auth-password").value;
+    const errEl = document.getElementById("auth-error");
+    if (!username || !password) { errEl.textContent = "Fill in all fields."; return; }
+
+    const res = await fetch(`${API}/${currentTab}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password })
+    });
+    const data = await res.json();
+    if (res.ok) {
+      token = data.token;
+      localStorage.setItem("token", token);
+      showApp();
+    } else {
+      errEl.textContent = data.detail || "Something went wrong.";
+    }
+  }
+
+  function logout() {
+    fetch(`${API}/logout`, { method: "POST", headers: { "Authorization": `Bearer ${token}` } }).catch(() => {});
+    localStorage.removeItem("token");
+    token = null;
+    activePDF = null;
+    document.getElementById("messages").innerHTML = "";
+    document.getElementById("messages").style.display = "none";
+    document.getElementById("input-area").style.display = "none";
+    document.getElementById("empty-state").style.display = "flex";
+    document.getElementById("active-pdf-name").textContent = "none selected";
+    document.getElementById("pdf-list").innerHTML = "";
+    document.getElementById("app-screen").style.display = "none";
+    document.getElementById("auth-screen").style.display = "flex";
+    document.getElementById("auth-username").value = "";
+    document.getElementById("auth-password").value = "";
+  }
+
+  function showApp() {
+    activePDF = null;
+    document.getElementById("messages").innerHTML = "";
+    document.getElementById("messages").style.display = "none";
+    document.getElementById("input-area").style.display = "none";
+    document.getElementById("empty-state").style.display = "flex";
+    document.getElementById("active-pdf-name").textContent = "none selected";
+    document.getElementById("pdf-list").innerHTML = "";
+    document.getElementById("auth-screen").style.display = "none";
+    document.getElementById("app-screen").style.display = "flex";
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    document.getElementById("username-label").textContent = payload.sub;
+    loadPDFs();
+  }
+
+  function authHeaders() {
+    return { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" };
+  }
+
+  // --- PDFs ---
+
   async function loadPDFs() {
-    const res = await fetch(`${API}/pdfs`);
+    const res = await fetch(`${API}/pdfs`, { headers: { "Authorization": `Bearer ${token}` } });
+    if (res.status === 401) { logout(); return; }
     const data = await res.json();
     renderPDFList(data.pdfs);
   }
@@ -212,15 +199,28 @@
     const list = document.getElementById("pdf-list");
     list.innerHTML = "";
     pdfs.forEach(name => {
-      const el = document.createElement("div");
-      el.className = "pdf-item" + (name === activePDF ? " active" : "");
-      el.textContent = name;
-      el.onclick = () => selectPDF(name);
-      list.appendChild(el);
+      const item = document.createElement("div");
+      item.className = "pdf-item" + (name === activePDF ? " active" : "");
+
+      const nameEl = document.createElement("div");
+      nameEl.className = "pdf-name";
+      nameEl.textContent = name;
+      nameEl.title = name;
+      nameEl.onclick = () => selectPDF(name);
+
+      const delBtn = document.createElement("button");
+      delBtn.className = "delete-btn";
+      delBtn.textContent = "🗑";
+      delBtn.title = "Delete";
+      delBtn.onclick = (e) => { e.stopPropagation(); deletePDF(name); };
+
+      item.appendChild(nameEl);
+      item.appendChild(delBtn);
+      list.appendChild(item);
     });
   }
 
-  function selectPDF(name) {
+  async function selectPDF(name) {
     activePDF = name;
     document.getElementById("active-pdf-name").textContent = name;
     document.getElementById("empty-state").style.display = "none";
@@ -228,13 +228,36 @@
     document.getElementById("input-area").style.display = "flex";
     document.getElementById("messages").innerHTML = "";
     loadPDFs();
+    const res = await fetch(`${API}/history/${encodeURIComponent(name)}`, { headers: { "Authorization": `Bearer ${token}` } });
+    const data = await res.json();
+    data.history.forEach(h => appendMessage(h.role, h.message));
   }
+
+  async function deletePDF(name) {
+    if (!confirm(`Delete "${name}"? This cannot be undone.`)) return;
+    const res = await fetch(`${API}/pdfs/${encodeURIComponent(name)}`, {
+      method: "DELETE",
+      headers: { "Authorization": `Bearer ${token}` }
+    });
+    if (res.ok) {
+      if (activePDF === name) {
+        activePDF = null;
+        document.getElementById("active-pdf-name").textContent = "none selected";
+        document.getElementById("empty-state").style.display = "flex";
+        document.getElementById("messages").style.display = "none";
+        document.getElementById("input-area").style.display = "none";
+      }
+      loadPDFs();
+    }
+  }
+
+  // --- Upload ---
 
   function handleFileSelect(event) {
     selectedFile = event.target.files[0];
     if (selectedFile) {
       document.getElementById("upload-btn").disabled = false;
-      document.getElementById("upload-status").textContent = `Selected: ${selectedFile.name}`;
+      document.getElementById("upload-status").textContent = selectedFile.name;
     }
   }
 
@@ -248,24 +271,26 @@
     const formData = new FormData();
     formData.append("file", selectedFile);
 
-    try {
-      const res = await fetch(`${API}/upload`, { method: "POST", body: formData });
-      const data = await res.json();
-      if (res.ok) {
-        status.textContent = "✓ Done!";
-        selectedFile = null;
-        document.getElementById("file-input").value = "";
-        loadPDFs();
-        selectPDF(data.pdf_name);
-      } else {
-        status.textContent = `Error: ${data.detail}`;
-        btn.disabled = false;
-      }
-    } catch {
-      status.textContent = "Upload failed.";
+    const res = await fetch(`${API}/upload`, {
+      method: "POST",
+      headers: { "Authorization": `Bearer ${token}` },
+      body: formData
+    });
+    const data = await res.json();
+    if (res.ok) {
+      status.textContent = "✓ Done!";
+      selectedFile = null;
+      document.getElementById("file-input").value = "";
+      btn.disabled = true;
+      loadPDFs();
+      selectPDF(data.pdf_name);
+    } else {
+      status.textContent = `Error: ${data.detail}`;
       btn.disabled = false;
     }
   }
+
+  // --- Chat ---
 
   function appendMessage(role, text) {
     const messages = document.getElementById("messages");
@@ -281,31 +306,22 @@
     const input = document.getElementById("question-input");
     const question = input.value.trim();
     if (!question || !activePDF) return;
-
     input.value = "";
     document.getElementById("send-btn").disabled = true;
     appendMessage("user", question);
     const thinking = appendMessage("thinking", "Thinking...");
 
-    try {
-      const res = await fetch(`${API}/ask`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pdf_name: activePDF, question })
-      });
-      const data = await res.json();
-      thinking.remove();
-      appendMessage("bot", res.ok ? data.answer : `Error: ${data.detail}`);
-    } catch {
-      thinking.remove();
-      appendMessage("bot", "Request failed.");
-    }
-
+    const res = await fetch(`${API}/ask`, {
+      method: "POST",
+      headers: authHeaders(),
+      body: JSON.stringify({ pdf_name: activePDF, question })
+    });
+    const data = await res.json();
+    thinking.remove();
+    appendMessage("bot", res.ok ? data.answer : `Error: ${data.detail}`);
     document.getElementById("send-btn").disabled = false;
     input.focus();
   }
-
-  loadPDFs();
 </script>
 </body>
 </html>
